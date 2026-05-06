@@ -1,66 +1,40 @@
-import Image from "next/image";
-import styles from "./page.module.css";
+import NumbersApp from './components/NumbersApp';
+import { getNumbers, getCategories } from './actions';
 
-export default function Home() {
+export default async function Home() {
+  const initialNumbers = await getNumbers();
+  const initialCategories = await getCategories();
+
   return (
-    <div className={styles.page}>
-      <main className={styles.main}>
-        <Image
-          className={styles.logo}
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className={styles.intro}>
-          <h1>To get started, edit the page.js file.</h1>
-          <p>
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
+    <div className="page active">
+      <section className="hero">
+        <div className="hero-badge">✦ India's Premium VIP Number Marketplace</div>
+        <h1>Find Your <span className="accent">Lucky</span><br/>VIP Mobile Number</h1>
+        <p>India's most trusted marketplace for premium VIP mobile numbers. Instant port (RTP) and non-RTP options available.</p>
+        <div className="hero-stats">
+          <div className="hero-stat">
+            <div className="hero-stat-num">50K+</div>
+            <div className="hero-stat-label">Numbers</div>
+          </div>
+          <div className="hero-divider"></div>
+          <div className="hero-stat">
+            <div className="hero-stat-num">10K+</div>
+            <div className="hero-stat-label">Happy Customers</div>
+          </div>
+          <div className="hero-divider"></div>
+          <div className="hero-stat">
+            <div className="hero-stat-num">RTP</div>
+            <div className="hero-stat-label">Instant Available</div>
+          </div>
+          <div className="hero-divider"></div>
+          <div className="hero-stat">
+            <div className="hero-stat-num">4.9★</div>
+            <div className="hero-stat-label">Rating</div>
+          </div>
         </div>
-        <div className={styles.ctas}>
-          <a
-            className={styles.primary}
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className={styles.logo}
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className={styles.secondary}
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
+      </section>
+
+      <NumbersApp initialNumbers={initialNumbers} initialCategories={initialCategories} />
     </div>
   );
 }

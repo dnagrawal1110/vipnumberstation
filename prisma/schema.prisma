@@ -1,0 +1,49 @@
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model VIPNumber {
+  id           Int      @id @default(autoincrement())
+  rawNumber    String
+  displayFormat String
+  highlight    String?
+  mrp          Int
+  price        Int
+  discount     Int      @default(0)
+  operator     String
+  type         String   // "RTP" or "Non-RTP"
+  rtpDate      String?  // Date string if Non-RTP
+  category     String
+  sumBreakdown String
+  sum          Int
+  dealer       String?  // Dealer name or "Own"
+  createdAt    DateTime @default(now())
+}
+
+model Dealer {
+  id           Int      @id @default(autoincrement())
+  name         String
+  businessName String?
+  mobile       String
+  email        String
+  city         String
+  state        String
+  numbersCount String
+  message      String?
+  status       String   @default("Pending") // "Pending", "Active"
+  createdAt    DateTime @default(now())
+}
+
+model Enquiry {
+  id           Int      @id @default(autoincrement())
+  name         String?
+  numberInterest String?
+  mobile       String
+  type         String?
+  createdAt    DateTime @default(now())
+}

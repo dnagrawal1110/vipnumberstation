@@ -1,6 +1,8 @@
 import NumbersApp from './components/NumbersApp';
 import { getNumbers, getCategories } from './actions';
 
+export const dynamic = 'force-dynamic';
+
 export default async function Home() {
   const initialNumbers = await getNumbers();
   const initialCategories = await getCategories();

@@ -1,286 +1,410 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { getNumbers, getCategories } from '../actions';
+import { useState, useEffect, useRef, useCallback } from 'react';
+import { getNumbers, getCategories, createEnquiry } from '../actions';
 import { CATEGORIES } from '../lib/categories';
 
-export default function NumbersApp({ initialNumbers, initialCategories }) {
-  const [numbers, setNumbers] = useState(initialNumbers);
-  const [categories, setCategories] = useState(initialCategories);
-  const [activeFilters, setActiveFilters] = useState({
-    sum: '', searchType: 'anywhere', digits: '', minPrice: '', maxPrice: '', operator: '', rtp: '', category: '', sort: 'default'
-  });
-  const [currentPage, setCurrentPage] = useState(1);
-  const [modalData, setModalData] = useState(null);
-  
-  const PER_PAGE = 12;
+const PER_PAGE = 12;
+const WA_NUMBER = '919999976767';
 
+export default function NumbersApp({ initialNumbers, initialCategories }) {
+  const [numbers, setNumbers]         = useState(initialNumbers);
+  const [categories, setCategories]   = useState(initialCategories);
+  const [activeFilters, setActiveFilters] = useState({
+    sum: '', searchType: 'anywhere', digits: '', minPrice: '', maxPrice: '',
+    operator: '', rtp: '', category: '', sort: 'default'
+  });
+  const [displayCount, setDisplayCount] = useState(PER_PAGE);
+  const [filterOpen, setFilterOpen]     = useState(false);
+  const [modalData, setModalData]       = useState(null);
+  const [enquiryModal, setEnquiryModal] = useState(null);
+  const [enquiryForm, setEnquiryForm]   = useState({ name: '', mobile: '', email: '' });
+  const [enquiryLoading, setEnquiryLoading] = useState(false);
+  const [enquiryDone, setEnquiryDone]   = useState(false);
+  const [searchInput, setSearchInput]   = useState('');
+  const loaderRef = useRef(null);
+
+  // Fetch on filter change
   useEffect(() => {
     async function fetchFiltered() {
       const filtered = await getNumbers(activeFilters);
       setNumbers(filtered);
-      setCurrentPage(1);
+      setDisplayCount(PER_PAGE);
     }
     fetchFiltered();
   }, [activeFilters]);
 
-  const handleFilterChange = (key, value) => {
+  // Infinite scroll observer
+  useEffect(() => {
+    if (!loaderRef.current) return;
+    const observer = new IntersectionObserver(
+      entries => { if (entries[0].isIntersecting) setDisplayCount(c => c + PER_PAGE); },
+      { rootMargin: '200px' }
+    );
+    observer.observe(loaderRef.current);
+    return () => observer.disconnect();
+  }, []);
+
+  const handleFilterChange = useCallback((key, value) => {
     setActiveFilters(prev => ({ ...prev, [key]: value }));
-  };
+  }, []);
 
   const applySearch = () => {
-    const searchType = document.getElementById('searchType').value;
-    const digits = document.getElementById('searchDigits').value.trim();
-    setActiveFilters(prev => ({ ...prev, searchType, digits }));
-  };
-
-  const applySumFilter = () => {
-    const sum = document.getElementById('sumInput').value;
-    setActiveFilters(prev => ({ ...prev, sum }));
-  };
-
-  const applyOtherFilters = () => {
-    setActiveFilters(prev => ({
-      ...prev,
-      minPrice: document.getElementById('minPrice').value,
-      maxPrice: document.getElementById('maxPrice').value,
-      operator: document.getElementById('operatorFilter').value,
-      rtp: document.getElementById('rtpFilter').value,
-    }));
+    setActiveFilters(prev => ({ ...prev, digits: searchInput }));
+    setFilterOpen(false);
   };
 
   const clearFilters = () => {
-    setActiveFilters({
-      sum: '', searchType: 'anywhere', digits: '', minPrice: '', maxPrice: '', operator: '', rtp: '', category: '', sort: 'default'
-    });
-    document.getElementById('sumInput').value = '';
-    document.getElementById('searchDigits').value = '';
-    document.getElementById('minPrice').value = '';
-    document.getElementById('maxPrice').value = '';
-    document.getElementById('operatorFilter').value = '';
-    document.getElementById('rtpFilter').value = '';
-    document.getElementById('searchType').value = 'anywhere';
+    setSearchInput('');
+    setActiveFilters({ sum: '', searchType: 'anywhere', digits: '', minPrice: '', maxPrice: '', operator: '', rtp: '', category: '', sort: 'default' });
+    setFilterOpen(false);
   };
-
-  const total = numbers.length;
-  const pages = Math.ceil(total / PER_PAGE);
-  const currentNumbers = numbers.slice((currentPage - 1) * PER_PAGE, currentPage * PER_PAGE);
 
   const formatDisplayNumber = (display, highlight) => {
     if (!highlight) return display;
-    const parts = highlight.split(',').map(h => h.trim()).filter(Boolean);
     let result = display;
-    parts.forEach(h => {
-      const regex = new RegExp(h.replace(/[.*+?^\\$\\{\\}()|[\\]\\\\]/g, '\\\\$&'), 'g');
+    highlight.split(',').map(h => h.trim()).filter(Boolean).forEach(h => {
+      const regex = new RegExp(h.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g');
       result = result.replace(regex, `<span class="highlight">${h}</span>`);
     });
     return result;
   };
 
-  const openModal = (n) => setModalData(n);
-  const closeModal = () => setModalData(null);
+  const visibleNumbers = numbers.slice(0, displayCount);
+  const hasMore = displayCount < numbers.length;
+
+  const openEnquiry = (n, type) => {
+    setEnquiryModal({ number: n, type });
+    setEnquiryDone(false);
+    setEnquiryForm({ name: '', mobile: '', email: '' });
+  };
+
+  const submitEnquiry = async () => {
+    if (!enquiryForm.mobile || enquiryForm.mobile.length < 10) {
+      alert('Please enter a valid mobile number');
+      return;
+    }
+    setEnquiryLoading(true);
+    try {
+      await createEnquiry({
+        name: enquiryForm.name,
+        mobile: enquiryForm.mobile,
+        email: enquiryForm.email,
+        numberId: enquiryModal.number.id,
+        numberRaw: enquiryModal.number.rawNumber,
+        numberPrice: enquiryModal.number.price,
+        enquiryType: enquiryModal.type,
+        numberInterest: enquiryModal.number.displayFormat,
+      });
+      // Send to WhatsApp
+      const msg = encodeURIComponent(
+        `Hi! I'm interested in VIP Number: ${enquiryModal.number.rawNumber}\n` +
+        `Price: ₹${enquiryModal.number.price.toLocaleString()}\n` +
+        `Type: ${enquiryModal.type}\n` +
+        `My Name: ${enquiryForm.name || 'N/A'}\n` +
+        `My Mobile: ${enquiryForm.mobile}`
+      );
+      window.open(`https://wa.me/${WA_NUMBER}?text=${msg}`, '_blank');
+      setEnquiryDone(true);
+    } catch (e) {
+      alert('Something went wrong. Please try again.');
+    }
+    setEnquiryLoading(false);
+  };
+
+  const activeFilterCount = [
+    activeFilters.digits, activeFilters.sum, activeFilters.minPrice,
+    activeFilters.maxPrice, activeFilters.operator, activeFilters.rtp
+  ].filter(Boolean).length;
 
   return (
     <>
-      <div style={{ maxWidth: '1280px', margin: '20px auto', padding: '0 24px' }}>
-        <div className="cat-tabs">
-          <div className={`cat-tab ${!activeFilters.category ? 'active' : ''}`} onClick={() => handleFilterChange('category', '')}>All Numbers</div>
-          <div className={`cat-tab ${activeFilters.category === 'RTP' ? 'active' : ''}`} onClick={() => handleFilterChange('category', 'RTP')}>⚡ RTP (Instant)</div>
+      {/* ── Mobile Search Bar ─────────────────────────────── */}
+      <div className="mobile-search-bar">
+        <div className="msb-inner">
+          <div className="msb-search">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            <input
+              type="text" placeholder="Search digits, e.g. 9999 or 786"
+              value={searchInput}
+              onChange={e => setSearchInput(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && applySearch()}
+            />
+            {searchInput && <button className="msb-clear" onClick={() => { setSearchInput(''); handleFilterChange('digits', ''); }}>✕</button>}
+          </div>
+          <button className="msb-filter-btn" onClick={() => setFilterOpen(true)}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="4" y1="6" x2="20" y2="6"/><line x1="8" y1="12" x2="16" y2="12"/><line x1="11" y1="18" x2="13" y2="18"/></svg>
+            {activeFilterCount > 0 && <span className="filter-badge">{activeFilterCount}</span>}
+          </button>
+        </div>
+      </div>
+
+      {/* ── Category Tabs ─────────────────────────────────── */}
+      <div className="cat-scroll">
+        <div className="cat-tabs-inner">
+          <button className={`cat-pill ${!activeFilters.category ? 'active' : ''}`} onClick={() => handleFilterChange('category', '')}>All</button>
+          <button className={`cat-pill ${activeFilters.category === 'RTP' ? 'active' : ''}`} onClick={() => handleFilterChange('category', 'RTP')}>⚡ Instant</button>
           {CATEGORIES.map(cat => (
-            <div key={cat} className={`cat-tab ${activeFilters.category === cat ? 'active' : ''}`} onClick={() => handleFilterChange('category', cat)}>{cat}</div>
+            <button key={cat} className={`cat-pill ${activeFilters.category === cat ? 'active' : ''}`} onClick={() => handleFilterChange('category', cat)}>{cat}</button>
           ))}
         </div>
       </div>
 
-      <div className="main-container">
-        <aside className="sidebar">
-          {/* SUM TOTAL */}
-          <div className="sidebar-section">
-            <div className="sidebar-title">Sum Total</div>
-            <div className="search-bar">
-              <input type="number" id="sumInput" placeholder="Enter 1–9 or 35-8-8" min="1" max="9" />
-              <button className="btn-gold" onClick={applySumFilter}>Go</button>
-            </div>
-            <div style={{ fontSize: '11px', color: 'var(--gray-4)', lineHeight: 1.5 }}>
-              Enter a single digit (1-9) for destiny number, or full sum like 35-8-8
-            </div>
-          </div>
-
-          {/* SEARCH */}
-          <div className="sidebar-section">
-            <div className="sidebar-title">Search Number</div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-              <div className="filter-row">
-                <label>Search Type</label>
-                <select id="searchType" defaultValue="anywhere">
-                  <option value="anywhere">Anywhere</option>
-                  <option value="startWith">Start With</option>
-                  <option value="endWith">End With</option>
-                  <option value="contains">Must Contain</option>
-                  <option value="notContain">Not Contain</option>
-                </select>
-              </div>
-              <div className="filter-row">
-                <label>Digits</label>
-                <input type="text" id="searchDigits" placeholder="e.g. 9999 or 786" maxLength="10" />
-              </div>
-              <button className="btn-gold" onClick={applySearch} style={{ width: '100%' }}>Search</button>
-              <button className="btn-sm btn-sm-outline" onClick={clearFilters} style={{ width: '100%', marginTop: '2px' }}>Clear Filters</button>
-            </div>
-          </div>
-
-          {/* PRICE RANGE */}
-          <div className="sidebar-section">
-            <div className="sidebar-title">Price Range</div>
-            <div className="price-row">
-              <div className="filter-row">
-                <label>Min (₹)</label>
-                <input type="number" id="minPrice" placeholder="0" />
-              </div>
-              <div className="filter-row">
-                <label>Max (₹)</label>
-                <input type="number" id="maxPrice" placeholder="50000" />
-              </div>
-            </div>
-            <div className="filter-row" style={{ marginTop: '8px' }}>
-              <label>Operator</label>
-              <select id="operatorFilter">
-                <option value="">All Operators</option>
-                <option value="Jio">Jio</option>
-                <option value="Airtel">Airtel</option>
-                <option value="Vi">Vi</option>
-                <option value="BSNL">BSNL</option>
-              </select>
-            </div>
-            <div className="filter-row" style={{ marginTop: '8px' }}>
-              <label>Type</label>
-              <select id="rtpFilter">
-                <option value="">RTP + Non-RTP</option>
-                <option value="RTP">RTP Only (Instant)</option>
-                <option value="Non-RTP">Non-RTP Only</option>
-              </select>
-            </div>
-            <button className="btn-gold" onClick={applyOtherFilters} style={{ width: '100%', marginTop: '12px' }}>Apply Filter</button>
-          </div>
-
-          {/* CATEGORIES */}
-          <div className="sidebar-section">
-            <div className="sidebar-title">Category</div>
-            <div>
-              {categories.map((c, i) => (
-                <div key={i} className={`category-item ${activeFilters.category === c.name ? 'active' : ''}`} onClick={() => handleFilterChange('category', c.name)}>
-                  <input type="checkbox" checked={activeFilters.category === c.name} readOnly />
-                  <span style={{ flex: 1, fontSize: '11px' }}>{c.name}</span>
-                  <span className="cat-count">{c.count}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        </aside>
-
-        <main className="numbers-section">
-          <div className="numbers-toolbar">
-            <div className="toolbar-left">
-              <div className="result-count">Showing <strong>{total}</strong> numbers</div>
-            </div>
-            <div className="toolbar-right">
-              <span style={{ fontSize: '12px', color: 'var(--gray-4)', fontFamily: 'var(--font-rajdhani)' }}>Sort:</span>
-              <button className={`sort-btn ${activeFilters.sort === 'default' ? 'active' : ''}`} onClick={() => handleFilterChange('sort', 'default')}>Default</button>
-              <button className={`sort-btn ${activeFilters.sort === 'low' ? 'active' : ''}`} onClick={() => handleFilterChange('sort', 'low')}>₹ Low–High</button>
-              <button className={`sort-btn ${activeFilters.sort === 'high' ? 'active' : ''}`} onClick={() => handleFilterChange('sort', 'high')}>₹ High–Low</button>
-            </div>
-          </div>
-
-          <div className="numbers-grid">
-            {currentNumbers.length === 0 ? (
-              <div className="no-results" style={{ gridColumn: '1/-1' }}>
-                <div className="no-results-icon">🔍</div>
-                <h3>No numbers found</h3>
-                <p>Try adjusting your filters or search terms</p>
-                <button className="btn-gold" onClick={clearFilters} style={{ marginTop: '16px' }}>Clear Filters</button>
-              </div>
-            ) : (
-              currentNumbers.map(n => {
-                const opClass = { 'Jio': 'op-jio', 'Airtel': 'op-airtel', 'Vi': 'op-vi', 'BSNL': 'op-bsnl' }[n.operator] || 'op-jio';
-                const rtpColor = n.type === 'RTP' ? 'green' : 'orange';
-                const rtpText = n.type === 'RTP' ? '⚡ RTP — Instant Port Available' : `⏳ Non-RTP — Port Ready by ${n.rtpDate}`;
-                
-                return (
-                  <div key={n.id} className="number-card" onClick={() => openModal(n)}>
-                    <div className="card-top">
-                      <div className="price-box">
-                        {n.mrp !== n.price && <span className="price-old">₹{n.mrp.toLocaleString()}</span>}
-                        <span className="price-new">₹{n.price.toLocaleString()}</span>
-                        {n.discount > 0 && <span className="discount-badge badge-red">{n.discount}% OFF</span>}
-                      </div>
-                      <button className="wishlist-btn" onClick={(e) => { e.stopPropagation(); e.target.classList.toggle('active'); e.target.textContent = e.target.classList.contains('active') ? '♥' : '♡'; }}>♡</button>
-                    </div>
-                    <div className={`rtp-tag ${n.type === 'RTP' ? 'rtp' : 'non-rtp'}`}>
-                      <span className={`rtp-dot ${rtpColor}`}></span>
-                      {rtpText}
-                    </div>
-                    <div className="number-display">
-                      <div className="number-formatted" dangerouslySetInnerHTML={{ __html: formatDisplayNumber(n.displayFormat, n.highlight) }}></div>
-                      <div className="sum-total">Sum Total = <span>{n.sumBreakdown}</span></div>
-                      <div className="card-category">{n.category}</div>
-                      <span className={`operator-tag ${opClass}`}>{n.operator}</span>
-                    </div>
-                    <div className="card-actions">
-                      <div className="card-btn card-btn-details">Details</div>
-                      <a href={`https://wa.me/919999976767?text=${encodeURIComponent(`Hi! I'm interested in VIP Number: ${n.rawNumber} priced at ₹${n.price.toLocaleString()} from vipnumberstation.com`)}`} target="_blank" rel="noreferrer" className="card-btn card-btn-buy" onClick={e => e.stopPropagation()}>Enquire</a>
-                    </div>
-                  </div>
-                );
-              })
-            )}
-          </div>
-
-          {pages > 1 && (
-            <div className="pagination">
-              {currentPage > 1 && <button className="page-btn" onClick={() => setCurrentPage(p => p - 1)}>‹</button>}
-              {Array.from({ length: pages }, (_, i) => i + 1).map(i => {
-                if (i === 1 || i === pages || Math.abs(i - currentPage) <= 2) {
-                  return <button key={i} className={`page-btn ${i === currentPage ? 'active' : ''}`} onClick={() => setCurrentPage(i)}>{i}</button>;
-                } else if (Math.abs(i - currentPage) === 3) {
-                  return <span key={i} style={{ color: 'var(--gray-4)', padding: '0 4px' }}>…</span>;
-                }
-                return null;
-              })}
-              {currentPage < pages && <button className="page-btn" onClick={() => setCurrentPage(p => p + 1)}>›</button>}
-            </div>
-          )}
-        </main>
+      {/* ── Toolbar ───────────────────────────────────────── */}
+      <div className="numbers-toolbar-mobile">
+        <span className="result-count-m"><strong>{numbers.length}</strong> numbers</span>
+        <div className="sort-row">
+          <button className={`sort-pill ${activeFilters.sort === 'default' ? 'active' : ''}`} onClick={() => handleFilterChange('sort', 'default')}>Default</button>
+          <button className={`sort-pill ${activeFilters.sort === 'low' ? 'active' : ''}`} onClick={() => handleFilterChange('sort', 'low')}>₹ Low</button>
+          <button className={`sort-pill ${activeFilters.sort === 'high' ? 'active' : ''}`} onClick={() => handleFilterChange('sort', 'high')}>₹ High</button>
+        </div>
       </div>
 
+      {/* ── Number Grid ───────────────────────────────────── */}
+      <div className="numbers-grid-wrap">
+        {visibleNumbers.length === 0 ? (
+          <div className="no-results">
+            <div className="no-results-icon">🔍</div>
+            <h3>No numbers found</h3>
+            <p>Try different search terms or clear your filters</p>
+            <button className="btn-gold" onClick={clearFilters} style={{ marginTop: '16px' }}>Clear Filters</button>
+          </div>
+        ) : (
+          <div className="numbers-grid-new">
+            {visibleNumbers.map(n => {
+              const isRTP    = n.type === 'RTP';
+              const isLocked = n.status === 'Locked';
+              return (
+                <div key={n.id} className={`num-card ${isLocked ? 'locked' : ''}`} onClick={() => setModalData(n)}>
+                  {/* Type badge */}
+                  <div className={`nc-type-badge ${isRTP ? 'rtp' : 'nonrtp'}`}>
+                    {isRTP ? '⚡ Instant' : '📅 Pre-Book'}
+                  </div>
+
+                  {/* Number display */}
+                  <div className="nc-number"
+                    dangerouslySetInnerHTML={{ __html: formatDisplayNumber(n.displayFormat, n.highlight) }} />
+
+                  {/* Sum */}
+                  <div className="nc-sum">Sum = {n.sumBreakdown}</div>
+
+                  {/* Price */}
+                  <div className="nc-price-row">
+                    <span className="nc-mrp">₹{n.mrp.toLocaleString()}</span>
+                    <span className="nc-price">₹{n.price.toLocaleString()}</span>
+                    <span className="nc-off">{n.discount}% OFF</span>
+                  </div>
+
+                  {/* Actions */}
+                  <div className="nc-actions" onClick={e => e.stopPropagation()}>
+                    <button className="nc-btn nc-details" onClick={() => setModalData(n)}>Details</button>
+                    {isLocked ? (
+                      <button className="nc-btn nc-locked" disabled>🔒 Enquired</button>
+                    ) : (
+                      <button
+                        className={`nc-btn ${isRTP ? 'nc-buy' : 'nc-prebook'}`}
+                        onClick={() => openEnquiry(n, isRTP ? 'Buy Now' : 'Pre Book')}
+                      >
+                        {isRTP ? 'Buy Now' : 'Pre Book'}
+                      </button>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+        {/* Infinite scroll loader */}
+        <div ref={loaderRef} style={{ height: '40px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          {hasMore && <div className="scroll-loader"><span></span><span></span><span></span></div>}
+        </div>
+      </div>
+
+      {/* ── Filter Drawer (mobile) ─────────────────────────── */}
+      {filterOpen && (
+        <div className="filter-overlay" onClick={() => setFilterOpen(false)}>
+          <div className="filter-drawer" onClick={e => e.stopPropagation()}>
+            <div className="drawer-header">
+              <span>Filters</span>
+              <button onClick={() => setFilterOpen(false)}>✕</button>
+            </div>
+
+            <div className="drawer-body">
+              {/* Search type */}
+              <div className="drawer-section">
+                <label>Search Type</label>
+                <div className="pill-group">
+                  {['anywhere','startWith','endWith','contains','notContain'].map(t => (
+                    <button key={t}
+                      className={`option-pill ${activeFilters.searchType === t ? 'active' : ''}`}
+                      onClick={() => handleFilterChange('searchType', t)}>
+                      {t === 'anywhere' ? 'Anywhere' : t === 'startWith' ? 'Starts With' : t === 'endWith' ? 'Ends With' : t === 'contains' ? 'Contains' : 'Not Contain'}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Sum */}
+              <div className="drawer-section">
+                <label>Sum Total (Numerology)</label>
+                <input type="number" placeholder="1–9 or e.g. 35" value={activeFilters.sum}
+                  onChange={e => handleFilterChange('sum', e.target.value)} className="drawer-input" />
+              </div>
+
+              {/* Price range */}
+              <div className="drawer-section">
+                <label>Price Range (₹)</label>
+                <div className="price-inputs">
+                  <input type="number" placeholder="Min" value={activeFilters.minPrice}
+                    onChange={e => handleFilterChange('minPrice', e.target.value)} className="drawer-input" />
+                  <span>–</span>
+                  <input type="number" placeholder="Max" value={activeFilters.maxPrice}
+                    onChange={e => handleFilterChange('maxPrice', e.target.value)} className="drawer-input" />
+                </div>
+              </div>
+
+              {/* Operator */}
+              <div className="drawer-section">
+                <label>Operator</label>
+                <div className="pill-group">
+                  {['', 'Jio', 'Airtel', 'Vi', 'BSNL'].map(op => (
+                    <button key={op}
+                      className={`option-pill ${activeFilters.operator === op ? 'active' : ''}`}
+                      onClick={() => handleFilterChange('operator', op)}>
+                      {op || 'All'}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Type */}
+              <div className="drawer-section">
+                <label>Number Type</label>
+                <div className="pill-group">
+                  {[['', 'All Types'], ['RTP', '⚡ Instant'], ['Non-RTP', '📅 Pre-Book']].map(([val, label]) => (
+                    <button key={val}
+                      className={`option-pill ${activeFilters.rtp === val ? 'active' : ''}`}
+                      onClick={() => handleFilterChange('rtp', val)}>
+                      {label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            <div className="drawer-footer">
+              <button className="drawer-clear" onClick={clearFilters}>Clear All</button>
+              <button className="drawer-apply btn-gold" onClick={() => setFilterOpen(false)}>Apply Filters</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Number Detail Modal ───────────────────────────── */}
       {modalData && (
-        <div className="modal-overlay" onClick={(e) => { if (e.target.className.includes('modal-overlay')) closeModal(); }}>
-          <div className="modal">
-            <button className="modal-close" onClick={closeModal}>✕</button>
-            <div style={{ fontFamily: 'var(--font-rajdhani)', fontSize: '11px', letterSpacing: '2px', color: 'var(--gold)', textAlign: 'center' }}>VIP NUMBER DETAILS</div>
-            <div className="modal-number" dangerouslySetInnerHTML={{ __html: formatDisplayNumber(modalData.displayFormat, modalData.highlight) }}></div>
-            <div style={{ textAlign: 'center', marginBottom: '8px' }}>
-              <span style={{ background: modalData.type === 'RTP' ? 'rgba(76,175,80,0.15)' : 'rgba(255,152,0,0.15)', color: modalData.type === 'RTP' ? '#4CAF50' : '#FF9800', padding: '4px 12px', borderRadius: '100px', fontSize: '12px', fontFamily: 'var(--font-rajdhani)', letterSpacing: '0.5px' }}>
-                {modalData.type === 'RTP' ? '⚡ RTP — Instant Port Available' : `⏳ Non-RTP — by ${modalData.rtpDate}`}
+        <div className="modal-overlay" onClick={e => { if (e.target.className.includes?.('modal-overlay')) setModalData(null); }}>
+          <div className="modal-new">
+            <button className="modal-close-new" onClick={() => setModalData(null)}>✕</button>
+            <div className="modal-label">VIP NUMBER</div>
+            <div className="modal-num" dangerouslySetInnerHTML={{ __html: formatDisplayNumber(modalData.displayFormat, modalData.highlight) }} />
+            <div className="modal-sum">Sum Total: {modalData.sumBreakdown} → <strong>{modalData.sum}</strong></div>
+
+            <div className="modal-price-block">
+              <span className="modal-mrp">₹{modalData.mrp.toLocaleString()}</span>
+              <span className="modal-price">₹{modalData.price.toLocaleString()}</span>
+              <span className="modal-off">{modalData.discount}% OFF</span>
+            </div>
+
+            <div className="modal-tags">
+              <span className="modal-tag">{modalData.operator}</span>
+              <span className={`modal-tag ${modalData.type === 'RTP' ? 'rtp' : 'nonrtp'}`}>
+                {modalData.type === 'RTP' ? '⚡ Instant Port' : `📅 Ready by ${modalData.rtpDate}`}
               </span>
+              <span className="modal-tag">{modalData.category}</span>
             </div>
-            <div className="modal-price">
-              <span style={{ color: 'var(--gray-4)', textDecoration: 'line-through', fontSize: '15px' }}>₹{modalData.mrp.toLocaleString()}</span>&nbsp; 
-              <strong style={{ color: 'var(--gold)' }}>₹{modalData.price.toLocaleString()}</strong>
+
+            <div className="modal-actions-new">
+              {modalData.status === 'Locked' ? (
+                <button className="nc-btn nc-locked" style={{ width: '100%', padding: '14px' }} disabled>🔒 Number Enquired by Someone</button>
+              ) : (
+                <>
+                  <button className={`nc-btn ${modalData.type === 'RTP' ? 'nc-buy' : 'nc-prebook'}`}
+                    style={{ flex: 1, padding: '14px', fontSize: '14px' }}
+                    onClick={() => { setModalData(null); openEnquiry(modalData, modalData.type === 'RTP' ? 'Buy Now' : 'Pre Book'); }}>
+                    {modalData.type === 'RTP' ? '🛒 Buy Now' : '📅 Pre Book'}
+                  </button>
+                  <a href={`https://wa.me/${WA_NUMBER}?text=${encodeURIComponent(`Hi! Interested in ${modalData.rawNumber} (₹${modalData.price.toLocaleString()})`)}`}
+                    target="_blank" rel="noreferrer"
+                    className="nc-btn nc-wa" style={{ flex: 1, padding: '14px', fontSize: '14px', textAlign: 'center', textDecoration: 'none' }}>
+                    💬 WhatsApp
+                  </a>
+                </>
+              )}
             </div>
-            <div className="modal-details">
-              <div className="modal-detail-item"><div className="modal-detail-label">Raw Number</div><div className="modal-detail-val">{modalData.rawNumber}</div></div>
-              <div className="modal-detail-item"><div className="modal-detail-label">Sum Total</div><div className="modal-detail-val" style={{ color: 'var(--gold)' }}>{modalData.sumBreakdown} → {modalData.sum}</div></div>
-              <div className="modal-detail-item"><div className="modal-detail-label">Operator</div><div className="modal-detail-val">{modalData.operator}</div></div>
-              <div className="modal-detail-item"><div className="modal-detail-label">Category</div><div className="modal-detail-val" style={{ fontSize: '12px' }}>{modalData.category}</div></div>
-              <div className="modal-detail-item"><div className="modal-detail-label">Discount</div><div className="modal-detail-val" style={{ color: '#FF6B6B' }}>{modalData.discount}% OFF</div></div>
-              <div className="modal-detail-item"><div className="modal-detail-label">Type</div><div className="modal-detail-val">{modalData.type}</div></div>
-            </div>
-            <div className="modal-actions" style={{ marginTop: '16px' }}>
-              <a href={`https://wa.me/919999976767?text=${encodeURIComponent(`Hi! I'm interested in VIP Number: ${modalData.rawNumber} priced at ₹${modalData.price.toLocaleString()} from vipnumberstation.com`)}`} target="_blank" rel="noreferrer" className="card-btn card-btn-buy" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', borderRadius: 'var(--radius)', fontFamily: 'var(--font-rajdhani)', fontSize: '13px', fontWeight: '700' }}>
-                💬 Enquire on WhatsApp
-              </a>
-              <button className="card-btn card-btn-details" onClick={closeModal} style={{ borderRadius: 'var(--radius)' }}>Close</button>
-            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Enquiry / Booking Modal ──────────────────────── */}
+      {enquiryModal && (
+        <div className="modal-overlay" onClick={e => { if (e.target.className.includes?.('modal-overlay')) setEnquiryModal(null); }}>
+          <div className="modal-new" style={{ maxWidth: '440px' }}>
+            <button className="modal-close-new" onClick={() => setEnquiryModal(null)}>✕</button>
+
+            {enquiryDone ? (
+              <div style={{ textAlign: 'center', padding: '20px 0' }}>
+                <div style={{ fontSize: '48px', marginBottom: '16px' }}>✅</div>
+                <div style={{ fontFamily: 'var(--font-rajdhani)', color: 'var(--gold)', fontSize: '20px', fontWeight: 700, marginBottom: '8px' }}>Enquiry Submitted!</div>
+                <div style={{ color: 'var(--gray-4)', fontSize: '13px', lineHeight: 1.6 }}>
+                  Your number <strong style={{ color: 'var(--white)' }}>{enquiryModal.number.rawNumber}</strong> is reserved for <strong style={{ color: 'var(--gold)' }}>12 hours</strong>.<br/>
+                  Our team will contact you on WhatsApp shortly.
+                </div>
+                <button className="btn-gold" style={{ marginTop: '20px', width: '100%' }} onClick={() => setEnquiryModal(null)}>Done</button>
+              </div>
+            ) : (
+              <>
+                <div className="modal-label">{enquiryModal.type === 'Buy Now' ? '🛒 Buy Now' : '📅 Pre Book'}</div>
+                <div style={{ fontFamily: 'var(--font-rajdhani)', fontSize: '24px', color: 'var(--gold)', textAlign: 'center', letterSpacing: '2px', margin: '8px 0 4px' }}>
+                  {enquiryModal.number.displayFormat}
+                </div>
+                <div style={{ textAlign: 'center', color: 'var(--gold)', fontWeight: 700, fontSize: '18px', marginBottom: '20px' }}>
+                  ₹{enquiryModal.number.price.toLocaleString()}
+                  {enquiryModal.type === 'Buy Now' && (
+                    <div style={{ fontSize: '11px', color: 'var(--gray-4)', fontWeight: 400, marginTop: '4px', fontFamily: 'var(--font-rajdhani)' }}>
+                      Refundable booking amount: ₹99 (collected via WhatsApp)
+                    </div>
+                  )}
+                </div>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                  <div>
+                    <label className="form-label-sm">Your Name</label>
+                    <input className="modal-input" type="text" placeholder="Full name"
+                      value={enquiryForm.name} onChange={e => setEnquiryForm(p => ({ ...p, name: e.target.value }))} />
+                  </div>
+                  <div>
+                    <label className="form-label-sm">Mobile Number *</label>
+                    <input className="modal-input" type="tel" placeholder="10-digit mobile" maxLength={10}
+                      value={enquiryForm.mobile} onChange={e => setEnquiryForm(p => ({ ...p, mobile: e.target.value }))} />
+                  </div>
+                  <div>
+                    <label className="form-label-sm">Email (optional)</label>
+                    <input className="modal-input" type="email" placeholder="your@email.com"
+                      value={enquiryForm.email} onChange={e => setEnquiryForm(p => ({ ...p, email: e.target.value }))} />
+                  </div>
+                </div>
+
+                <button className={`nc-btn ${enquiryModal.type === 'Buy Now' ? 'nc-buy' : 'nc-prebook'}`}
+                  style={{ width: '100%', padding: '14px', fontSize: '15px', marginTop: '20px' }}
+                  onClick={submitEnquiry} disabled={enquiryLoading}>
+                  {enquiryLoading ? 'Submitting...' : enquiryModal.type === 'Buy Now' ? '🛒 Confirm & Proceed to WhatsApp' : '📅 Pre-Book & Notify Me'}
+                </button>
+                <div style={{ textAlign: 'center', color: 'var(--gray-4)', fontSize: '11px', marginTop: '10px' }}>
+                  🔒 Number held for 12 hours after enquiry. No payment collected here.
+                </div>
+              </>
+            )}
           </div>
         </div>
       )}

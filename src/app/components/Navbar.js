@@ -21,8 +21,8 @@ export default function Navbar() {
           <Link href="/" className={isActive('/')}>VIP Numbers</Link>
           <Link href="/numerology" className={isActive('/numerology')}>Numerology</Link>
           <Link href="/about" className={isActive('/about')}>About</Link>
-          <Link href="/dealer" className={isActive('/dealer')}>Dealer Panel</Link>
-          <Link href="/admin" className={isActive('/admin')}>Admin</Link>
+          <Link href="/dealer" className={isActive('/dealer')}>Become a Dealer</Link>
+          <Link href="/login" className={isActive('/login')}>Login</Link>
           <a href="https://wa.me/919999976767?text=Hi, I'm interested in VIP numbers" target="_blank" rel="noreferrer" className="nav-cta">Enquire Now</a>
         </div>
         <a href="https://wa.me/919999976767?text=Hi, I want to know about VIP numbers" target="_blank" rel="noreferrer" className="whatsapp-btn">

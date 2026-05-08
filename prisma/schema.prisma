@@ -9,42 +9,70 @@ generator client {
 }
 
 model VIPNumber {
-  id           Int      @id @default(autoincrement())
-  rawNumber    String
+  id            Int       @id @default(autoincrement())
+  rawNumber     String
   displayFormat String
-  highlight    String?
-  mrp          Int
-  price        Int
-  discount     Int      @default(0)
-  operator     String
-  type         String   // "RTP" or "Non-RTP"
-  rtpDate      String?  // Date string if Non-RTP
-  category     String
-  sumBreakdown String
-  sum          Int
-  dealer       String?  // Dealer name or "Own"
-  createdAt    DateTime @default(now())
+  highlight     String?
+  dealerPrice   Int       @default(0)   // What dealer charges us
+  commission    Int       @default(25)  // Commission % (default 25%)
+  mrp           Int                     // = sellingPrice / 0.85  (so 15% discount shows)
+  price         Int                     // sellingPrice = dealerPrice * 1.25
+  discount      Int       @default(15)  // Always 15% off MRP shown
+  operator      String
+  type          String                  // "RTP" or "Non-RTP"
+  rtpDate       String?
+  category      String
+  sumBreakdown  String
+  sum           Int
+  dealer        String?
+  dealerRef     Int?                    // FK to Dealer.id
+  status        String    @default("Available") // "Available", "Locked", "Sold"
+  lockedAt      DateTime?
+  lockedBy      String?                 // mobile of customer who enquired
+  createdAt     DateTime  @default(now())
 }
 
 model Dealer {
-  id           Int      @id @default(autoincrement())
-  name         String
-  businessName String?
-  mobile       String
-  email        String
-  city         String
-  state        String
-  numbersCount String
-  message      String?
-  status       String   @default("Pending") // "Pending", "Active"
-  createdAt    DateTime @default(now())
+  id            Int       @id @default(autoincrement())
+  name          String
+  businessName  String?
+  mobile        String
+  email         String    @unique
+  passwordHash  String?
+  city          String
+  pincode       String?
+  state         String
+  numbersCount  String
+  message       String?
+  status        String    @default("Pending") // "Pending", "Active", "Rejected"
+  createdAt     DateTime  @default(now())
 }
 
 model Enquiry {
-  id           Int      @id @default(autoincrement())
-  name         String?
+  id             Int       @id @default(autoincrement())
+  name           String?
+  mobile         String
+  email          String?
   numberInterest String?
-  mobile       String
-  type         String?
-  createdAt    DateTime @default(now())
+  numberId       Int?                   // FK to VIPNumber.id
+  numberRaw      String?               // snapshot of number
+  numberPrice    Int?                  // snapshot of price
+  enquiryType    String?               // "Buy Now", "Pre Book", "General"
+  status         String    @default("New") // "New", "Contacted", "Confirmed", "Closed", "Lost"
+  notes          String?
+  assignedTo     String?
+  lockedUntil    DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+}
+
+model User {
+  id           Int       @id @default(autoincrement())
+  email        String    @unique
+  passwordHash String
+  name         String
+  role         String                  // "admin", "dealer", "team", "customer"
+  dealerId     Int?                    // link to Dealer if role=dealer
+  active       Boolean   @default(true)
+  createdAt    DateTime  @default(now())
 }

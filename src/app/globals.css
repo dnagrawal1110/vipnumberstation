@@ -2712,7 +2712,7 @@ footer {
 .mobile-filter-fab {
   display: none;
   position: fixed;
-  bottom: 24px;
+  bottom: 90px;
   right: 20px;
   z-index: 900;
   width: 54px;
@@ -2756,6 +2756,151 @@ footer {
   .hero-slider-content { padding: 40px 20px 64px; }
   .slider-title { font-size: 28px; }
   .slider-sub { font-size: 13px; }
+}
+
+/* ═══════════════════════════════════════════════════════════
+   HAMBURGER BUTTON (mobile only)
+═══════════════════════════════════════════════════════════ */
+.nav-mobile-right {
+  display: none;
+  align-items: center;
+  gap: 8px;
+}
+.hamburger {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 5px;
+  width: 38px;
+  height: 38px;
+  background: rgba(201,168,76,0.08);
+  border: 1px solid rgba(201,168,76,0.25);
+  border-radius: 8px;
+  cursor: pointer;
+  padding: 8px;
+  flex-shrink: 0;
+}
+.hamburger span {
+  display: block;
+  height: 2px;
+  background: var(--gold);
+  border-radius: 2px;
+  transition: all 0.25s;
+  transform-origin: center;
+}
+.hamburger.open span:nth-child(1) { transform: translateY(7px) rotate(45deg); }
+.hamburger.open span:nth-child(2) { opacity: 0; transform: scaleX(0); }
+.hamburger.open span:nth-child(3) { transform: translateY(-7px) rotate(-45deg); }
+
+/* Mobile slide-down menu */
+.mobile-menu {
+  position: fixed;
+  inset: 0;
+  z-index: 1200;
+  background: rgba(0,0,0,0.6);
+  backdrop-filter: blur(4px);
+}
+.mobile-menu-inner {
+  background: var(--black-2);
+  border-bottom: 2px solid var(--gold-dark);
+  padding: 16px 0 20px;
+  display: flex;
+  flex-direction: column;
+}
+.mm-link {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 24px;
+  font-family: var(--font-rajdhani);
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--gray-3);
+  text-decoration: none;
+  border-bottom: 1px solid rgba(255,255,255,0.04);
+  transition: all 0.15s;
+  letter-spacing: 0.5px;
+}
+.mm-link:hover, .mm-link.active { color: var(--gold); background: rgba(201,168,76,0.06); }
+.mm-wa {
+  margin: 16px 20px 0;
+  padding: 14px 20px;
+  background: #25D366;
+  color: white;
+  text-decoration: none;
+  border-radius: var(--radius);
+  font-family: var(--font-rajdhani);
+  font-weight: 700;
+  font-size: 15px;
+  text-align: center;
+  letter-spacing: 0.5px;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   BOTTOM NAVIGATION BAR (mobile only)
+═══════════════════════════════════════════════════════════ */
+.bottom-nav {
+  display: none;
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 1000;
+  background: var(--black-2);
+  border-top: 1px solid rgba(201,168,76,0.2);
+  padding: 6px 0 env(safe-area-inset-bottom, 6px);
+  justify-content: space-around;
+  align-items: flex-end;
+  box-shadow: 0 -4px 20px rgba(0,0,0,0.5);
+}
+.bnav-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  padding: 4px 10px;
+  color: var(--gray-4);
+  text-decoration: none;
+  font-family: var(--font-rajdhani);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+  transition: color 0.15s;
+  min-width: 52px;
+}
+.bnav-item svg { stroke: currentColor; transition: stroke 0.15s; }
+.bnav-item.active { color: var(--gold); }
+.bnav-item.active svg { stroke: var(--gold); }
+
+/* Centre WhatsApp bubble */
+.bnav-center { position: relative; top: -10px; }
+.bnav-center-btn {
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  background: #25D366;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 16px rgba(37,211,102,0.4);
+  margin-bottom: 2px;
+}
+.bnav-center svg { stroke: none; }
+
+@media (max-width: 900px) {
+  .bottom-nav { display: flex; }
+  .hamburger { display: flex; }
+
+  /* Hide desktop nav links & WhatsApp btn from navbar on mobile */
+  .navbar .nav-links { display: none !important; }
+  .navbar .whatsapp-btn { display: none !important; }
+
+  /* Push content above bottom nav */
+  body { padding-bottom: 72px; }
+}
+@media (min-width: 901px) {
+  .hamburger { display: none !important; }
+  .bottom-nav { display: none !important; }
 }
 
 

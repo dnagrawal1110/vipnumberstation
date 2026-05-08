@@ -44,7 +44,7 @@ export default function Footer() {
         </div>
         <div className="footer-bottom">
           <span>© 2026 VIP Number Station. All rights reserved.</span>
-          <span>Jio · Airtel · Vi · BSNL — All Operators</span>
+          <span>All Operators Supported · Instant Port Available</span>
         </div>
       </div>
     </footer>

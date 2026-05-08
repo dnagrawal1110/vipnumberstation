@@ -13,7 +13,6 @@ const TABS = ['dashboard', 'numbers', 'add-number', 'enquiries', 'dealers', 'tea
 const STATES = ['Maharashtra','Delhi','Gujarat','Karnataka','Tamil Nadu','Rajasthan','Uttar Pradesh','West Bengal','Punjab','Haryana','Bihar','Other'];
 
 export default function AdminPanel() {
-  const [loggedIn, setLoggedIn]     = useState(false);
   const [activeTab, setActiveTab]   = useState('dashboard');
   const [stats, setStats]           = useState({ total: 0, rtp: 0, nonRtp: 0, enquiries: 0, dealers: 0, pending: 0 });
   const [numbers, setNumbers]       = useState([]);
@@ -41,12 +40,8 @@ export default function AdminPanel() {
     }
   }, [dealerPrice, commission]);
 
-  const handleLogin = () => {
-    const u = document.getElementById('adminUser').value;
-    const p = document.getElementById('adminPass').value;
-    if (u === 'admin' && p === 'vip@2026') { setLoggedIn(true); fetchAll(); }
-    else alert('⚠ Invalid credentials');
-  };
+  // Load data on mount (proxy.js already ensures only admins reach this page)
+  useEffect(() => { fetchAll(); }, []);
 
   const fetchAll = async () => {
     const [s, n, d, pd, e, t] = await Promise.all([
@@ -132,26 +127,6 @@ export default function AdminPanel() {
   const filteredNums = numFilter
     ? numbers.filter(n => n.rawNumber.includes(numFilter) || n.operator.toLowerCase().includes(numFilter.toLowerCase()))
     : numbers;
-
-  if (!loggedIn) {
-    return (
-      <div style={{ maxWidth: '400px', margin: '80px auto', padding: '0 24px' }}>
-        <div className="register-card">
-          <h2 style={{ marginBottom: '4px' }}>Admin Login</h2>
-          <p style={{ color: 'var(--gray-4)', fontSize: '13px', marginBottom: '24px' }}>VIP Number Station — Control Panel</p>
-          <div className="form-group" style={{ marginBottom: '14px' }}>
-            <label>Username</label>
-            <input type="text" id="adminUser" placeholder="admin" onKeyDown={e => e.key === 'Enter' && handleLogin()} />
-          </div>
-          <div className="form-group" style={{ marginBottom: '20px' }}>
-            <label>Password</label>
-            <input type="password" id="adminPass" placeholder="••••••••" onKeyDown={e => e.key === 'Enter' && handleLogin()} />
-          </div>
-          <button className="btn-submit" onClick={handleLogin}>Sign In →</button>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="admin-wrap">

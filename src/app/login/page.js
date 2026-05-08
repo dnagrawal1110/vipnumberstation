@@ -63,11 +63,9 @@ export default function LoginPage() {
           </form>
 
           <div style={{ marginTop: '20px', padding: '14px', background: 'rgba(201,168,76,0.06)', borderRadius: 'var(--radius)', borderLeft: '3px solid var(--gold)' }}>
-            <div style={{ fontSize: '11px', color: 'var(--gray-4)', lineHeight: 1.7 }}>
-              <strong style={{ color: 'var(--gold-light)', fontFamily: 'var(--font-rajdhani)' }}>Team / Dealer Login</strong><br/>
-              Use your registered email & password.<br/>
-              <strong style={{ color: 'var(--gold-light)', fontFamily: 'var(--font-rajdhani)' }}>Admin Login</strong><br/>
-              Use username: <code style={{ color: 'var(--gold)' }}>admin</code>
+            <div style={{ fontSize: '11px', color: 'var(--gray-4)', lineHeight: 1.8 }}>
+              <strong style={{ color: 'var(--gold-light)', fontFamily: 'var(--font-rajdhani)', fontSize: '12px' }}>ADMIN</strong> — username: <code style={{ color: 'var(--gold)' }}>admin</code><br/>
+              <strong style={{ color: 'var(--gold-light)', fontFamily: 'var(--font-rajdhani)', fontSize: '12px' }}>TEAM / DEALER</strong> — use your registered email
             </div>
           </div>
         </div>

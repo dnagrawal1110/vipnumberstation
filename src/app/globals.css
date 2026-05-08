@@ -2661,18 +2661,95 @@ footer {
 @media (max-width: 900px) {
   .mobile-topbar { display: flex; }
   .nums-sidebar { display: none; }
-  .nums-layout { padding: 0 0 40px; }
+  .nums-layout { padding: 0 0 80px; }
   .nums-main { padding: 10px 12px 0; }
 
-  /* 1 card per row on mobile */
+  /* 1 card per row on mobile — taller/more elongated */
   .num-grid {
     grid-template-columns: 1fr;
-    gap: 10px;
+    gap: 12px;
   }
-  .ncard-number { font-size: 26px; }
+  .ncard {
+    min-height: 220px;
+  }
+  .ncard-strip {
+    padding: 9px 14px;
+    font-size: 11px;
+  }
+  .ncard-number {
+    font-size: 30px;
+    padding: 20px 14px 6px;
+    letter-spacing: 3px;
+  }
+  .ncard-sum {
+    font-size: 11px;
+    padding: 0 14px 12px;
+  }
+  .ncard-price-row {
+    padding: 6px 14px 16px;
+    gap: 9px;
+  }
+  .ncard-price {
+    font-size: 17px;
+  }
+  .ncard-mrp {
+    font-size: 12px;
+  }
+  .ncard-off {
+    font-size: 10px;
+    padding: 3px 7px;
+  }
+  .ncard-btn {
+    padding: 14px 8px;
+    font-size: 13px;
+  }
 
   .nums-toolbar { padding: 0 0 8px; }
   .cat-pill-row { padding-bottom: 8px; }
+}
+
+/* ── Mobile Floating Filter FAB ─────────────────────────── */
+.mobile-filter-fab {
+  display: none;
+  position: fixed;
+  bottom: 24px;
+  right: 20px;
+  z-index: 900;
+  width: 54px;
+  height: 54px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--gold-dark), var(--gold), var(--gold-light));
+  color: var(--black);
+  border: none;
+  cursor: pointer;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 22px rgba(201,168,76,0.45), 0 2px 8px rgba(0,0,0,0.5);
+  transition: transform 0.18s, box-shadow 0.18s;
+}
+.mobile-filter-fab:hover {
+  transform: scale(1.08);
+  box-shadow: 0 6px 28px rgba(201,168,76,0.6);
+}
+.fab-badge {
+  position: absolute;
+  top: -2px;
+  right: -2px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #ff4444;
+  color: white;
+  font-size: 10px;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-inter);
+  border: 2px solid var(--black);
+}
+@media (max-width: 900px) {
+  .mobile-filter-fab { display: flex; }
 }
 
 @media (max-width: 480px) {

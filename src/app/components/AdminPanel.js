@@ -250,7 +250,7 @@ export default function AdminPanel() {
                 <div className="form-group"><label>Highlight Digits (comma-sep)</label><input type="text" id="addHighlight" placeholder="9876, 3210" /></div>
                 <div className="form-group"><label>Operator *</label><select id="addOperator"><option>Jio</option><option>Airtel</option><option>Vi</option><option>BSNL</option></select></div>
                 <div className="form-group"><label>Type *</label><select id="addType"><option value="RTP">RTP (Instant Port)</option><option value="Non-RTP">Non-RTP (Pre-Book)</option></select></div>
-                <div className="form-group"><label>RTP Ready Date (if Non-RTP)</label><input type="text" id="addRTPDate" placeholder="e.g. 15 Jun 2026" /></div>
+                <div className="form-group"><label>RTP Ready Date (if Non-RTP)</label><input type="date" id="addRTPDate" style={{ colorScheme: 'dark' }} /></div>
                 <div className="form-group"><label>Category *</label><select id="addCategory">{CATEGORIES.map(c => <option key={c}>{c}</option>)}</select></div>
                 <div className="form-group"><label>Dealer Name</label><input type="text" id="addDealer" placeholder="Dealer name or Own" /></div>
                 <div className="form-group"><label>Dealer DB ID (optional)</label><input type="number" id="addDealerRef" placeholder="ID from dealer table" /></div>

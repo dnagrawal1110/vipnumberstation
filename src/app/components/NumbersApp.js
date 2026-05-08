@@ -96,7 +96,7 @@ export default function NumbersApp({ initialNumbers, initialCategories }) {
     setEnquiryLoading(false);
   };
 
-  const activeFilterCount = [activeFilters.digits, activeFilters.sum, activeFilters.minPrice, activeFilters.maxPrice, activeFilters.operator, activeFilters.rtp].filter(Boolean).length;
+  const activeFilterCount = [activeFilters.digits, activeFilters.sum, activeFilters.minPrice, activeFilters.maxPrice, activeFilters.rtp].filter(Boolean).length;
 
   // ── Sidebar filter panel (shared between desktop sidebar & mobile drawer)
   const FilterPanel = ({ inDrawer = false }) => (
@@ -169,15 +169,6 @@ export default function NumbersApp({ initialNumbers, initialCategories }) {
           <input className="fp-input" type="number" placeholder="Min" value={activeFilters.minPrice} onChange={e => set('minPrice', e.target.value)} />
           <input className="fp-input" type="number" placeholder="Max" value={activeFilters.maxPrice} onChange={e => set('maxPrice', e.target.value)} />
         </div>
-      </div>
-
-      {/* Operator */}
-      <div className="fp-section">
-        <div className="fp-title">Operator</div>
-        <select className="fp-select" value={activeFilters.operator} onChange={e => set('operator', e.target.value)}>
-          <option value="">All Operators</option>
-          <option>Jio</option><option>Airtel</option><option>Vi</option><option>BSNL</option>
-        </select>
       </div>
 
       {/* Type */}
@@ -304,6 +295,12 @@ export default function NumbersApp({ initialNumbers, initialCategories }) {
         </div>
       </div>
 
+      {/* ── Mobile Filter FAB (floating button) ─── */}
+      <button className="mobile-filter-fab" onClick={() => setDrawerOpen(true)} aria-label="Open filters">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="4" y1="6" x2="20" y2="6"/><line x1="8" y1="12" x2="16" y2="12"/><line x1="11" y1="18" x2="13" y2="18"/></svg>
+        {activeFilterCount > 0 && <span className="fab-badge">{activeFilterCount}</span>}
+      </button>
+
       {/* ── Mobile Filter Drawer ─── */}
       {drawerOpen && (
         <div className="drawer-overlay" onClick={() => setDrawerOpen(false)}>
@@ -334,7 +331,6 @@ export default function NumbersApp({ initialNumbers, initialCategories }) {
               <span className="modal-off">{modalData.discount}% OFF</span>
             </div>
             <div className="modal-tags">
-              <span className="modal-tag">{modalData.operator}</span>
               <span className={`modal-tag ${modalData.type === 'RTP' ? 'rtp' : 'nonrtp'}`}>
                 {modalData.type === 'RTP' ? '⚡ Instant Port' : `📅 Ready by ${modalData.rtpDate}`}
               </span>

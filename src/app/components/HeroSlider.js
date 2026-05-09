@@ -6,37 +6,19 @@ const SLIDES = [
     bg: 'linear-gradient(135deg, #0a0800 0%, #1a1200 40%, #0d0a00 70%, #080600 100%)',
     accent: 'radial-gradient(ellipse 90% 70% at 50% 0%, rgba(201,168,76,0.18) 0%, transparent 65%)',
     title: 'Premium VIP Mobile Numbers',
-    subtitle: 'Stand out with a number that defines you',
+    subtitle: 'Stand out with a number that defines your identity',
     tag: '⚡ Instant Port Available',
     cta: 'Browse Numbers',
     ctaHref: '#numbers',
   },
   {
-    bg: 'linear-gradient(135deg, #050a08 0%, #0a1a10 40%, #050d08 70%, #030606 100%)',
-    accent: 'radial-gradient(ellipse 90% 70% at 50% 0%, rgba(76,175,80,0.12) 0%, transparent 65%)',
-    title: 'RTP Numbers — Port Instantly',
-    subtitle: 'Keep your operator, get your dream number today',
-    tag: '🔄 Same-Day Transfer',
-    cta: 'View RTP Numbers',
-    ctaHref: '#instant',
-  },
-  {
     bg: 'linear-gradient(135deg, #080010 0%, #120018 40%, #0a000d 70%, #060006 100%)',
     accent: 'radial-gradient(ellipse 90% 70% at 50% 0%, rgba(150,76,201,0.12) 0%, transparent 65%)',
     title: 'Numerology Lucky Numbers',
-    subtitle: 'Find your destiny number, attract prosperity',
+    subtitle: 'Find your destiny number — attract prosperity and success',
     tag: '🔢 Numerology Matched',
     cta: 'Find Lucky Number',
     ctaHref: '/numerology',
-  },
-  {
-    bg: 'linear-gradient(135deg, #0a0505 0%, #1a0808 40%, #0d0505 70%, #080303 100%)',
-    accent: 'radial-gradient(ellipse 90% 70% at 50% 0%, rgba(201,76,76,0.1) 0%, transparent 65%)',
-    title: 'Become a Dealer',
-    subtitle: 'List your VIP numbers and earn 25%+ commission on every sale',
-    tag: '💰 Earn Per Sale',
-    cta: 'Register as Dealer',
-    ctaHref: '/dealer',
   },
 ];
 
@@ -45,7 +27,7 @@ export default function HeroSlider() {
   const [animating, setAnimating] = useState(false);
 
   useEffect(() => {
-    const t = setInterval(() => goTo((active + 1) % SLIDES.length), 4500);
+    const t = setInterval(() => goTo((active + 1) % SLIDES.length), 5000);
     return () => clearInterval(t);
   }, [active]);
 
@@ -72,7 +54,8 @@ export default function HeroSlider() {
             className="slider-wa"
           >
             <svg width="16" height="16" viewBox="0 0 24 24" fill="white">
-              <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.126.553 4.115 1.524 5.843L.057 23.927l6.248-1.637A11.938 11.938 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.818a9.818 9.818 0 01-5.013-1.376l-.36-.213-3.714.974.99-3.614-.235-.372A9.818 9.818 0 012.182 12c0-5.424 4.394-9.818 9.818-9.818s9.818 4.394 9.818 9.818-4.394 9.818-9.818 9.818z"/>
+              <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/>
+              <path d="M12 0C5.373 0 0 5.373 0 12c0 2.126.553 4.115 1.524 5.843L.057 23.927l6.248-1.637A11.938 11.938 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.818a9.818 9.818 0 01-5.013-1.376l-.36-.213-3.714.974.99-3.614-.235-.372A9.818 9.818 0 012.182 12c0-5.424 4.394-9.818 9.818-9.818s9.818 4.394 9.818 9.818-4.394 9.818-9.818 9.818z"/>
             </svg>
             WhatsApp
           </a>

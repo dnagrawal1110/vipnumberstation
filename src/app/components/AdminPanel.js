@@ -29,6 +29,11 @@ export default function AdminPanel() {
   const [commission, setCommission]   = useState(25);
   const [calcResult, setCalcResult]   = useState({ price: 0, mrp: 0, discount: 15 });
 
+  // Dealer search/select for Add Number
+  const [dealerSearch, setDealerSearch]     = useState('');
+  const [selectedDealer, setSelectedDealer] = useState(null); // { id, name, mobile }
+  const [dealerDropOpen, setDealerDropOpen] = useState(false);
+
   useEffect(() => {
     if (dealerPrice) {
       const dp = parseInt(dealerPrice) || 0;
@@ -72,18 +77,21 @@ export default function AdminPanel() {
     const highlight     = document.getElementById('addHighlight').value.trim();
     const dp            = parseInt(document.getElementById('addDealerPrice').value) || 0;
     const comm          = parseInt(document.getElementById('addCommission').value) || 25;
-    const operator      = document.getElementById('addOperator').value;
     const type          = document.getElementById('addType').value;
     const rtpDate       = document.getElementById('addRTPDate').value;
     const category      = document.getElementById('addCategory').value;
-    const dealer        = document.getElementById('addDealer').value || 'Own';
-    const dealerRef     = document.getElementById('addDealerRef').value;
+    const dealer        = selectedDealer?.name || 'Own';
+    const dealerRef     = selectedDealer?.id   || null;
 
     if (!rawNumber || rawNumber.length !== 10 || !displayFormat || !dp) {
       alert('⚠ Fill all required fields. Number must be 10 digits and dealer price > 0.'); return;
     }
-    await addNumber({ rawNumber, displayFormat, highlight, dealerPrice: dp, commission: comm, operator, type, rtpDate, category, dealer, dealerRef });
-    alert('✓ Number added!'); fetchAll(); setActiveTab('numbers');
+    await addNumber({ rawNumber, displayFormat, highlight, dealerPrice: dp, commission: comm, operator: '', type, rtpDate, category, dealer, dealerRef });
+    alert('✓ Number added!');
+    // Reset form fields
+    ['addRaw','addDisplay','addHighlight','addDealerPrice','addRTPDate'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
+    setDealerPrice(''); setSelectedDealer(null); setDealerSearch('');
+    fetchAll(); setActiveTab('numbers');
   };
 
   const handleAddDealer = async () => {
@@ -223,12 +231,50 @@ export default function AdminPanel() {
                 <div className="form-group"><label>Raw Number (10 digits) *</label><input type="text" id="addRaw" placeholder="9876543210" maxLength={10} /></div>
                 <div className="form-group"><label>Display Format *</label><input type="text" id="addDisplay" placeholder="98765-43210" /></div>
                 <div className="form-group"><label>Highlight Digits (comma-sep)</label><input type="text" id="addHighlight" placeholder="9876, 3210" /></div>
-                <div className="form-group"><label>Operator *</label><select id="addOperator"><option>Jio</option><option>Airtel</option><option>Vi</option><option>BSNL</option></select></div>
                 <div className="form-group"><label>Type *</label><select id="addType"><option value="RTP">RTP (Instant Port)</option><option value="Non-RTP">Non-RTP (Pre-Book)</option></select></div>
-                <div className="form-group"><label>RTP Ready Date (if Non-RTP)</label><input type="date" id="addRTPDate" style={{ colorScheme: 'dark' }} /></div>
+                <div className="form-group"><label>Available By Date (Non-RTP)</label><input type="date" id="addRTPDate" style={{ colorScheme: 'dark' }} /></div>
                 <div className="form-group"><label>Category *</label><select id="addCategory">{CATEGORIES.map(c => <option key={c}>{c}</option>)}</select></div>
-                <div className="form-group"><label>Dealer Name</label><input type="text" id="addDealer" placeholder="Dealer name or Own" /></div>
-                <div className="form-group"><label>Dealer DB ID (optional)</label><input type="number" id="addDealerRef" placeholder="ID from dealer table" /></div>
+
+                {/* Dealer Search Dropdown */}
+                <div className="form-group" style={{ gridColumn: '1 / -1' }}>
+                  <label>Dealer (search by name or mobile)</label>
+                  <input
+                    type="text"
+                    placeholder="Type to search dealers..."
+                    value={dealerSearch}
+                    onChange={e => { setDealerSearch(e.target.value); setSelectedDealer(null); }}
+                    style={{ marginBottom: '6px' }}
+                  />
+                  <select
+                    value={selectedDealer?.id || ''}
+                    onChange={e => {
+                      if (!e.target.value) { setSelectedDealer(null); setDealerSearch(''); return; }
+                      const d = dealers.find(d => d.id === parseInt(e.target.value));
+                      if (d) { setSelectedDealer(d); setDealerSearch(d.name); }
+                    }}
+                  >
+                    <option value="">— Own (No Dealer) —</option>
+                    {dealers
+                      .filter(d => {
+                        if (!dealerSearch) return true;
+                        const q = dealerSearch.toLowerCase();
+                        return d.name.toLowerCase().includes(q) || d.mobile?.includes(dealerSearch) || d.businessName?.toLowerCase().includes(q);
+                      })
+                      .map(d => (
+                        <option key={d.id} value={d.id}>
+                          {d.name}{d.businessName ? ` · ${d.businessName}` : ''} — {d.mobile}
+                        </option>
+                      ))
+                    }
+                  </select>
+                  {selectedDealer && (
+                    <div style={{ fontSize: '11px', color: 'var(--gold)', marginTop: '5px' }}>
+                      ✓ Selected: <strong>{selectedDealer.name}</strong> (ID: {selectedDealer.id}) · {selectedDealer.mobile}
+                      <button onClick={() => { setSelectedDealer(null); setDealerSearch(''); }}
+                        style={{ marginLeft: '8px', background: 'none', border: 'none', color: '#ff6b6b', cursor: 'pointer', fontSize: '11px' }}>✕ Clear</button>
+                    </div>
+                  )}
+                </div>
               </div>
 
               <div className="commission-box">

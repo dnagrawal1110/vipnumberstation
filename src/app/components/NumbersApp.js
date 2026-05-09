@@ -7,12 +7,22 @@ import { CATEGORIES } from '../lib/categories';
 const PER_PAGE = 18;
 const WA_NUMBER = '919999976767';
 
+/** Format YYYY-MM-DD → DD-MM-YY for display */
+function fmtRtpDate(d) {
+  if (!d) return null;
+  if (/^\d{4}-\d{2}-\d{2}$/.test(d)) {
+    const [y, m, day] = d.split('-');
+    return `${day}-${m}-${y.slice(2)}`;
+  }
+  return d;
+}
+
 export default function NumbersApp({ initialNumbers, initialCategories }) {
   const [numbers, setNumbers]       = useState(initialNumbers);
   const [categories, setCategories] = useState(initialCategories);
   const [activeFilters, setActiveFilters] = useState({
     sum: '', searchType: 'anywhere', digits: '', minPrice: '', maxPrice: '',
-    operator: '', rtp: '', category: '', sort: 'default'
+    rtp: '', category: '', sort: 'default'
   });
   const [displayCount, setDisplayCount] = useState(PER_PAGE);
   const [drawerOpen, setDrawerOpen]     = useState(false);
@@ -20,7 +30,6 @@ export default function NumbersApp({ initialNumbers, initialCategories }) {
   const [enquiryModal, setEnquiryModal] = useState(null);
   const [enquiryForm, setEnquiryForm]   = useState({ name: '', mobile: '', email: '' });
   const [enquiryLoading, setEnquiryLoading] = useState(false);
-  const [enquiryDone, setEnquiryDone]   = useState(false);
   const [mobileSearch, setMobileSearch] = useState('');
   const loaderRef = useRef(null);
 
@@ -48,7 +57,7 @@ export default function NumbersApp({ initialNumbers, initialCategories }) {
 
   const clearAll = () => {
     setMobileSearch('');
-    setActiveFilters({ sum: '', searchType: 'anywhere', digits: '', minPrice: '', maxPrice: '', operator: '', rtp: '', category: '', sort: 'default' });
+    setActiveFilters({ sum: '', searchType: 'anywhere', digits: '', minPrice: '', maxPrice: '', rtp: '', category: '', sort: 'default' });
     setDrawerOpen(false);
   };
 
@@ -67,38 +76,44 @@ export default function NumbersApp({ initialNumbers, initialCategories }) {
 
   const openEnquiry = (n, type) => {
     setEnquiryModal({ number: n, type });
-    setEnquiryDone(false);
     setEnquiryForm({ name: '', mobile: '', email: '' });
     setModalData(null);
   };
 
+  /** Save enquiry to backend + open WhatsApp immediately */
   const submitEnquiry = async () => {
     if (!enquiryForm.mobile || enquiryForm.mobile.length < 10) {
       alert('Please enter a valid 10-digit mobile number'); return;
     }
     setEnquiryLoading(true);
+    const n    = enquiryModal.number;
+    const type = enquiryModal.type;
     try {
-      await createEnquiry({
+      // Save to CRM (fire and forget — WhatsApp opens regardless)
+      createEnquiry({
         name: enquiryForm.name, mobile: enquiryForm.mobile, email: enquiryForm.email,
-        numberId: enquiryModal.number.id, numberRaw: enquiryModal.number.rawNumber,
-        numberPrice: enquiryModal.number.price, enquiryType: enquiryModal.type,
-        numberInterest: enquiryModal.number.displayFormat,
-      });
+        numberId: n.id, numberRaw: n.rawNumber, numberPrice: n.price,
+        enquiryType: type, numberInterest: n.displayFormat,
+      }).catch(() => {});
+
+      const rtpLine = n.type === 'Non-RTP' && n.rtpDate
+        ? `\nDelivery date: ${fmtRtpDate(n.rtpDate)}`
+        : '';
       const msg = encodeURIComponent(
-        `Hi! Interested in VIP Number: ${enquiryModal.number.rawNumber}\n` +
-        `Price: ₹${enquiryModal.number.price.toLocaleString()}\n` +
-        `Type: ${enquiryModal.type}\n` +
+        `Hi! I'm interested in VIP Number: ${n.rawNumber}\n` +
+        `Price: ₹${n.price.toLocaleString()}\n` +
+        `Type: ${type}${rtpLine}\n` +
         `Name: ${enquiryForm.name || 'N/A'} | Mobile: ${enquiryForm.mobile}`
       );
       window.open(`https://wa.me/${WA_NUMBER}?text=${msg}`, '_blank');
-      setEnquiryDone(true);
-    } catch { alert('Something went wrong. Please try again.'); }
+    } catch { /* ignore */ }
     setEnquiryLoading(false);
+    setEnquiryModal(null); // close modal immediately
   };
 
   const activeFilterCount = [activeFilters.digits, activeFilters.sum, activeFilters.minPrice, activeFilters.maxPrice, activeFilters.rtp].filter(Boolean).length;
 
-  // ── Sidebar filter panel (shared between desktop sidebar & mobile drawer)
+  // ── Shared filter panel
   const FilterPanel = ({ inDrawer = false }) => (
     <div className={inDrawer ? 'drawer-body' : 'sidebar-inner'}>
 
@@ -142,7 +157,7 @@ export default function NumbersApp({ initialNumbers, initialCategories }) {
             <option value="notContain">Not Contain</option>
           </select>
         </div>
-        <div className="fp-row" style={{ display: 'flex', gap: '6px' }}>
+        <div className="fp-row">
           <input className="fp-input" type="text" placeholder="e.g. 9999, 786" maxLength={10}
             value={activeFilters.digits}
             onChange={e => set('digits', e.target.value)}
@@ -176,7 +191,7 @@ export default function NumbersApp({ initialNumbers, initialCategories }) {
         <div className="fp-title">Number Type</div>
         <select className="fp-select" value={activeFilters.rtp} onChange={e => set('rtp', e.target.value)}>
           <option value="">All Types</option>
-          <option value="RTP">⚡ Instant (RTP)</option>
+          <option value="RTP">⚡ Instant Port (RTP)</option>
           <option value="Non-RTP">📅 Pre-Book (Non-RTP)</option>
         </select>
       </div>
@@ -187,7 +202,7 @@ export default function NumbersApp({ initialNumbers, initialCategories }) {
 
   return (
     <>
-      {/* ── Mobile: search bar + filter trigger ─── */}
+      {/* ── Mobile: search bar ─── */}
       <div className="mobile-topbar">
         <div className="mtb-search">
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
@@ -198,10 +213,6 @@ export default function NumbersApp({ initialNumbers, initialCategories }) {
           />
           {mobileSearch && <button className="mtb-x" onClick={() => { setMobileSearch(''); set('digits', ''); }}>✕</button>}
         </div>
-        <button className="mtb-filter" onClick={() => setDrawerOpen(true)}>
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="4" y1="6" x2="20" y2="6"/><line x1="8" y1="12" x2="16" y2="12"/><line x1="11" y1="18" x2="13" y2="18"/></svg>
-          {activeFilterCount > 0 && <span className="mtb-badge">{activeFilterCount}</span>}
-        </button>
       </div>
 
       {/* ── Main layout: sidebar + grid ─── */}
@@ -215,9 +226,8 @@ export default function NumbersApp({ initialNumbers, initialCategories }) {
         {/* Numbers section */}
         <div className="nums-main">
 
-          {/* Toolbar */}
+          {/* Toolbar — sort only, no count */}
           <div className="nums-toolbar">
-            <div className="nums-count"><strong>{numbers.length}</strong> numbers found</div>
             <div className="nums-sort">
               <span>Sort:</span>
               {[['default','Default'],['low','₹ Low'],['high','₹ High']].map(([v,l]) => (
@@ -248,13 +258,14 @@ export default function NumbersApp({ initialNumbers, initialCategories }) {
               {visibleNums.map(n => {
                 const isRTP    = n.type === 'RTP';
                 const isLocked = n.status === 'Locked';
+                const dateStr  = fmtRtpDate(n.rtpDate);
                 return (
-                  <div key={n.id} className={`ncard ${isLocked ? 'ncard-locked' : ''}`} onClick={() => setModalData(n)}>
+                  <div key={n.id} className="ncard" onClick={() => setModalData(n)}>
 
-                    {/* RTP indicator strip */}
+                    {/* Type strip */}
                     <div className={`ncard-strip ${isRTP ? 'strip-rtp' : 'strip-nrtp'}`}>
                       <span className={`strip-dot ${isRTP ? 'dot-green' : 'dot-orange'}`}/>
-                      {isRTP ? '⚡ Instant Port' : `📅 Pre-Book · ${n.rtpDate || 'Coming Soon'}`}
+                      {isRTP ? '⚡ Instant Port' : `📅 Available by ${dateStr || 'Soon'}`}
                     </div>
 
                     {/* Number — BIG */}
@@ -264,7 +275,7 @@ export default function NumbersApp({ initialNumbers, initialCategories }) {
                     {/* Sum */}
                     <div className="ncard-sum">Sum = {n.sumBreakdown}</div>
 
-                    {/* Price — SMALL, secondary */}
+                    {/* Price */}
                     <div className="ncard-price-row">
                       <span className="ncard-mrp">₹{n.mrp.toLocaleString()}</span>
                       <span className="ncard-price">₹{n.price.toLocaleString()}</span>
@@ -275,7 +286,7 @@ export default function NumbersApp({ initialNumbers, initialCategories }) {
                     <div className="ncard-btns" onClick={e => e.stopPropagation()}>
                       <button className="ncard-btn ncard-details" onClick={() => setModalData(n)}>Details</button>
                       {isLocked ? (
-                        <button className="ncard-btn ncard-enquired" disabled>🔒 Enquired</button>
+                        <button className="ncard-btn ncard-booked" disabled>🔒 Booked</button>
                       ) : isRTP ? (
                         <button className="ncard-btn ncard-buy" onClick={() => openEnquiry(n, 'Buy Now')}>Buy Now</button>
                       ) : (
@@ -295,7 +306,7 @@ export default function NumbersApp({ initialNumbers, initialCategories }) {
         </div>
       </div>
 
-      {/* ── Mobile Filter FAB (floating button) ─── */}
+      {/* ── Mobile Filter FAB ─── */}
       <button className="mobile-filter-fab" onClick={() => setDrawerOpen(true)} aria-label="Open filters">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="4" y1="6" x2="20" y2="6"/><line x1="8" y1="12" x2="16" y2="12"/><line x1="11" y1="18" x2="13" y2="18"/></svg>
         {activeFilterCount > 0 && <span className="fab-badge">{activeFilterCount}</span>}
@@ -332,22 +343,30 @@ export default function NumbersApp({ initialNumbers, initialCategories }) {
             </div>
             <div className="modal-tags">
               <span className={`modal-tag ${modalData.type === 'RTP' ? 'rtp' : 'nonrtp'}`}>
-                {modalData.type === 'RTP' ? '⚡ Instant Port' : `📅 Ready by ${modalData.rtpDate}`}
+                {modalData.type === 'RTP' ? '⚡ Instant Port' : `📅 Available by ${fmtRtpDate(modalData.rtpDate) || 'Soon'}`}
               </span>
-              <span className="modal-tag">{modalData.category}</span>
+              {modalData.category && <span className="modal-tag">{modalData.category}</span>}
             </div>
             <div className="modal-actions-new">
               {modalData.status === 'Locked' ? (
-                <button className="ncard-btn ncard-enquired" style={{ width: '100%', padding: '14px' }} disabled>🔒 Currently Enquired</button>
-              ) : modalData.type === 'RTP' ? (
-                <>
-                  <button className="ncard-btn ncard-buy" style={{ flex: 1, padding: '14px', fontSize: '14px' }} onClick={() => openEnquiry(modalData, 'Buy Now')}>🛒 Buy Now</button>
-                  <a href={`https://wa.me/${WA_NUMBER}?text=${encodeURIComponent(`Hi! Interested in ${modalData.rawNumber} (₹${modalData.price.toLocaleString()})`)}`} target="_blank" rel="noreferrer" className="ncard-btn ncard-wa" style={{ flex: 1, padding: '14px', fontSize: '14px', textAlign: 'center', textDecoration: 'none' }}>💬 WhatsApp</a>
-                </>
+                <button className="ncard-btn ncard-booked" style={{ width: '100%', padding: '14px' }} disabled>🔒 Currently Booked</button>
               ) : (
                 <>
-                  <button className="ncard-btn ncard-prebook" style={{ flex: 1, padding: '14px', fontSize: '14px' }} onClick={() => openEnquiry(modalData, 'Pre Book')}>📅 Pre Book</button>
-                  <a href={`https://wa.me/${WA_NUMBER}?text=${encodeURIComponent(`Hi! Interested in ${modalData.rawNumber} (₹${modalData.price.toLocaleString()})`)}`} target="_blank" rel="noreferrer" className="ncard-btn ncard-wa" style={{ flex: 1, padding: '14px', fontSize: '14px', textAlign: 'center', textDecoration: 'none' }}>💬 WhatsApp</a>
+                  <button
+                    className="ncard-btn ncard-buy"
+                    style={{ flex: 1, padding: '14px', fontSize: '14px' }}
+                    onClick={() => openEnquiry(modalData, modalData.type === 'RTP' ? 'Buy Now' : 'Pre Book')}
+                  >
+                    {modalData.type === 'RTP' ? '🛒 Enquire' : '📅 Enquire'}
+                  </button>
+                  <a
+                    href={`https://wa.me/${WA_NUMBER}?text=${encodeURIComponent(`Hi! Interested in ${modalData.rawNumber} (₹${modalData.price.toLocaleString()})`)}`}
+                    target="_blank" rel="noreferrer"
+                    className="ncard-btn ncard-wa"
+                    style={{ flex: 1, padding: '14px', fontSize: '14px', textAlign: 'center', textDecoration: 'none' }}
+                  >
+                    💬 WhatsApp
+                  </a>
                 </>
               )}
             </div>
@@ -360,38 +379,34 @@ export default function NumbersApp({ initialNumbers, initialCategories }) {
         <div className="modal-overlay" onClick={e => { if (e.target.classList.contains('modal-overlay')) setEnquiryModal(null); }}>
           <div className="modal-new" style={{ maxWidth: '440px' }}>
             <button className="modal-close-new" onClick={() => setEnquiryModal(null)}>✕</button>
-            {enquiryDone ? (
-              <div style={{ textAlign: 'center', padding: '20px 0' }}>
-                <div style={{ fontSize: '48px', marginBottom: '16px' }}>✅</div>
-                <div style={{ fontFamily: 'var(--font-rajdhani)', color: 'var(--gold)', fontSize: '20px', fontWeight: 700, marginBottom: '8px' }}>Enquiry Submitted!</div>
-                <div style={{ color: 'var(--gray-4)', fontSize: '13px', lineHeight: 1.7 }}>
-                  <strong style={{ color: 'var(--white)' }}>{enquiryModal.number.rawNumber}</strong> is reserved for <strong style={{ color: 'var(--gold)' }}>12 hours</strong>.<br/>Our team will reach you on WhatsApp shortly.
-                </div>
-                <button className="btn-gold" style={{ marginTop: '20px', width: '100%' }} onClick={() => setEnquiryModal(null)}>Done</button>
+            <div className="modal-label">{enquiryModal.type === 'Buy Now' ? '🛒 Buy Now' : '📅 Pre Book'}</div>
+            <div style={{ fontFamily: 'var(--font-rajdhani)', fontSize: '26px', color: 'var(--gold)', textAlign: 'center', letterSpacing: '2px', margin: '6px 0 2px', fontWeight: 700 }}>
+              {enquiryModal.number.displayFormat}
+            </div>
+            <div style={{ textAlign: 'center', marginBottom: '6px' }}>
+              <span style={{ color: 'var(--gold)', fontWeight: 800, fontSize: '20px', fontFamily: 'var(--font-inter)' }}>
+                ₹{enquiryModal.number.price.toLocaleString()}
+              </span>
+            </div>
+            {enquiryModal.number.type === 'Non-RTP' && enquiryModal.number.rtpDate && (
+              <div style={{ textAlign: 'center', fontSize: '12px', color: '#CCA050', marginBottom: '16px', background: 'rgba(255,152,0,0.07)', padding: '7px 12px', borderRadius: 'var(--radius)' }}>
+                📅 You will receive this number by <strong>{fmtRtpDate(enquiryModal.number.rtpDate)}</strong>
               </div>
-            ) : (
-              <>
-                <div className="modal-label">{enquiryModal.type === 'Buy Now' ? '🛒 Buy Now' : '📅 Pre Book'}</div>
-                <div style={{ fontFamily: 'var(--font-rajdhani)', fontSize: '26px', color: 'var(--gold)', textAlign: 'center', letterSpacing: '2px', margin: '6px 0 2px', fontWeight: 700 }}>{enquiryModal.number.displayFormat}</div>
-                <div style={{ textAlign: 'center', marginBottom: '20px' }}>
-                  <span style={{ color: 'var(--gold)', fontWeight: 800, fontSize: '20px', fontFamily: 'var(--font-inter)' }}>₹{enquiryModal.number.price.toLocaleString()}</span>
-                  {enquiryModal.type === 'Buy Now' && <div style={{ fontSize: '11px', color: 'var(--gray-4)', marginTop: '4px' }}>Refundable booking: ₹99 (collected via WhatsApp)</div>}
-                </div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                  <div><label className="form-label-sm">Your Name</label><input className="modal-input" type="text" placeholder="Full name" value={enquiryForm.name} onChange={e => setEnquiryForm(p => ({ ...p, name: e.target.value }))} /></div>
-                  <div><label className="form-label-sm">Mobile Number *</label><input className="modal-input" type="tel" placeholder="10-digit mobile" maxLength={10} value={enquiryForm.mobile} onChange={e => setEnquiryForm(p => ({ ...p, mobile: e.target.value }))} /></div>
-                  <div><label className="form-label-sm">Email (optional)</label><input className="modal-input" type="email" placeholder="your@email.com" value={enquiryForm.email} onChange={e => setEnquiryForm(p => ({ ...p, email: e.target.value }))} /></div>
-                </div>
-                <button
-                  className={enquiryModal.type === 'Buy Now' ? 'ncard-btn ncard-buy' : 'ncard-btn ncard-prebook'}
-                  style={{ width: '100%', padding: '14px', fontSize: '15px', marginTop: '20px', borderRadius: 'var(--radius)' }}
-                  onClick={submitEnquiry} disabled={enquiryLoading}
-                >
-                  {enquiryLoading ? 'Submitting...' : enquiryModal.type === 'Buy Now' ? '🛒 Confirm & WhatsApp' : '📅 Pre-Book & Notify'}
-                </button>
-                <div style={{ textAlign: 'center', color: 'var(--gray-4)', fontSize: '11px', marginTop: '10px' }}>🔒 Number held 12 hours after enquiry. No payment here.</div>
-              </>
             )}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              <div><label className="form-label-sm">Your Name</label><input className="modal-input" type="text" placeholder="Full name" value={enquiryForm.name} onChange={e => setEnquiryForm(p => ({ ...p, name: e.target.value }))} /></div>
+              <div><label className="form-label-sm">Mobile Number *</label><input className="modal-input" type="tel" placeholder="10-digit mobile" maxLength={10} value={enquiryForm.mobile} onChange={e => setEnquiryForm(p => ({ ...p, mobile: e.target.value }))} /></div>
+            </div>
+            <button
+              className="ncard-btn ncard-buy"
+              style={{ width: '100%', padding: '14px', fontSize: '15px', marginTop: '20px', borderRadius: 'var(--radius)' }}
+              onClick={submitEnquiry} disabled={enquiryLoading}
+            >
+              {enquiryLoading ? 'Saving...' : '💬 Confirm & Open WhatsApp'}
+            </button>
+            <div style={{ textAlign: 'center', color: 'var(--gray-4)', fontSize: '11px', marginTop: '10px' }}>
+              🔒 Number held 12 hrs after enquiry · No payment collected here
+            </div>
           </div>
         </div>
       )}

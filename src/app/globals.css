@@ -992,6 +992,10 @@ footer {
   align-items: flex-end;
   gap: 10px;
 }
+@media (max-width: 900px) {
+  /* Bottom nav has WhatsApp centre button — hide floating one */
+  .enquiry-float { display: none !important; }
+}
 
 .float-btn {
   display: flex;
@@ -2579,6 +2583,18 @@ footer {
   grid-column: 1 / -1;
   font-size: 11px;
   padding: 10px;
+}
+/* Booked state — same grid position as Buy Now, muted golden */
+.ncard-booked {
+  background: rgba(201,168,76,0.08);
+  color: rgba(201,168,76,0.5);
+  cursor: not-allowed;
+  font-size: 12px;
+  font-weight: 700;
+  font-family: var(--font-rajdhani);
+  letter-spacing: 0.5px;
+  border: none;
+  padding: 11px 8px;
 }
 .ncard-wa {
   background: #25D366;
